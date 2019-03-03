@@ -21,15 +21,23 @@
 package ykpiv
 
 import (
+	"crypto"
+	"crypto/rsa"
 	"crypto/tls"
 )
 
 // Create a tls.Certificate fit for use in crypto/tls applications,
 // such as net/http, or grpc.
 func (slot Slot) TLSCertificate() tls.Certificate {
+	var privKey interface{} = slot
+	if _, ok := slot.Certificate.PublicKey.(*rsa.PublicKey); !ok {
+		// Suppress slot.Decrypt for non-RSA keys
+		privKey = struct{ crypto.Signer }{slot}
+	}
+
 	return tls.Certificate{
 		Certificate: [][]byte{slot.Certificate.Raw},
-		PrivateKey:  slot,
+		PrivateKey:  privKey,
 		Leaf:        slot.Certificate,
 	}
 }
